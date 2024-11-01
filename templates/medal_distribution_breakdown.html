@@ -1,0 +1,370 @@
+    {% extends "base.html" %}
+{% load static %}
+
+{% block header %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock header %}
+{% block content %}
+<div class="card-container">
+<div class="card" id="treemap" style="width: 900px; height: 500px;"></div>
+<div class="card" id="medal-bar-chart-2024" style="width: 900px; height: 500px;"></div>
+<div class="card" id="gold-medals-pie-chart" style="width: 900px; height: 500px;"></div>
+<div class="card" id="gold-medals-all-time-pie-chart" style="width: 900px; height: 500px;"></div>
+<div class="card" id="medals-distribution-heatmap" style="width: 900px; height: 500px;"></div>
+<div class="card" id="medals-gender-sport-bar-chart" style="width: 900px; height: 500px;"></div>
+<div class="card" id="top-athletes-bar-chart" style="width: 900px; height: 500px;"> </div>
+</div>
+{% endblock content %}
+{% block javascript %}
+
+
+<script>
+
+    fetch('{% url "MedalsBySportYearView" %}')
+    .then(response => response.json())
+    .then(data => {
+        const treemapData = [];
+        const years = [...new Set(data.years)]; // Unique years
+
+        // Create a mapping for years and their corresponding sports
+        const yearSportMap = {};
+
+        // Populate yearSportMap with sports and their medal counts
+        for (let i = 0; i < data.years.length; i++) {
+            const year = data.years[i];
+            const sport = data.sports[i];
+            const totalMedals = data.total_medals[i];
+
+            // If the year is not in the map, initialize it
+            if (!yearSportMap[year]) {
+                yearSportMap[year] = [];
+            }
+
+            // Add the sport and its total medals to the respective year
+            yearSportMap[year].push({ sport, totalMedals });
+        }
+
+        // Build the treemap data structure
+        for (const year of years) {
+            treemapData.push({
+                id: year,
+                label: year,
+                children: yearSportMap[year].map(sportData => ({
+                    id: sportData.sport,
+                    label: sportData.sport,
+                    value: sportData.totalMedals
+                }))
+            });
+        }
+
+        // Flatten the data for Plotly
+        const labels = [];
+        const parents = [];
+        const values = [];
+
+        // Iterate through the treemapData to fill labels, parents, and values
+        treemapData.forEach(yearNode => {
+            labels.push(yearNode.label);
+            parents.push(""); // Top level, so no parent
+
+            yearNode.children.forEach(child => {
+                labels.push(child.label);
+                parents.push(yearNode.label); // Child's parent is the year
+                values.push(child.value);
+            });
+        });
+
+        // Create the treemap trace
+        const trace = {
+            type: "treemap",
+            labels: labels,
+            parents: parents,
+            values: values,
+            textinfo: "label+value",
+            domain: {
+                x: [0, 1],
+                y: [0, 1]
+            },
+            marker: {
+                colors: values,
+                colorscale: 'Viridis'
+            }
+        };
+
+        // Define the layout
+        const layout ={
+
+            title: 'Distribution of Medals by Sport Over Time',
+            height: 600,
+            width: 800,
+        };
+
+        // Render the treemap
+        Plotly.newPlot('treemap', [trace], layout);
+    });
+</script>
+<script>
+    // Fetch data from the API
+    fetch('/api/top-10-countries-2024-medals/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the bar chart
+            const trace = {
+                x: data.countries,
+                y: data.medals,
+                type: 'bar',
+                name: 'Total Medals'
+            };
+    
+            // Define the layout for the chart
+            const layout ={
+
+                title: 'Top 10 Countries by Medals in 2024',
+                xaxis: { title: 'Country' },
+                yaxis: { title: 'Total Medals' }
+            };
+    
+            // Render the bar chart
+            Plotly.newPlot('medal-bar-chart-2024', [trace], layout);
+        });
+</script>
+<script>
+    fetch('/api/gold-medals-by-sport/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare data for the pie chart
+            const pieData = [{
+                values: Array(data.gold_medals).fill(1),  // Array of 1s, the count of gold medals
+                labels: data.sports,
+                type: 'pie'
+            }];
+    
+            // Define the layout for the pie chart
+            const layout ={
+
+                title: `Gold Medals by Sport for ${data.top_country} in 2024`,
+            };
+    
+            // Render the pie chart
+            Plotly.newPlot('gold-medals-pie-chart', pieData, layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+
+<script>
+    fetch('/api/gold-medals-by-sport-all-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare data for the pie chart
+            const pieData = [{
+                values: Array(data.gold_medals).fill(1),  // Array of 1s, the count of gold medals
+                labels: data.sports,
+                type: 'pie'
+            }];
+    
+            // Define the layout for the pie chart
+            const layout ={
+
+                title: `Gold Medals by Sport for ${data.top_country} (1896-2024)`,
+            };
+    
+            // Render the pie chart
+            Plotly.newPlot('gold-medals-all-time-pie-chart', pieData, layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+
+    <script>
+        fetch('/api/medals-distribution-heatmap/')
+            .then(response => response.json())
+            .then(data => {
+                // Prepare data for the heatmap
+                const heatmapData = [{
+                    z: data.z,
+                    x: data.x,
+                    y: data.y,
+                    type: 'heatmap',
+                    colorscale: 'Viridis'
+                }];
+        
+                // Define the layout for the heatmap
+                const layout ={
+
+                    title: 'Distribution of Medals by Top 10 Countries and Year',
+                    xaxis: { title: 'Country', nticks: 36 },
+                    yaxis: { title: 'Year', nticks: 20 },
+                };
+        
+                // Render the heatmap
+                Plotly.newPlot('medals-distribution-heatmap', heatmapData, layout);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    </script>
+    <script>
+        fetch('/api/medals-gender-sport/')
+            .then(response => response.json())
+            .then(data => {
+                // Prepare data for the bar chart
+                const sports = [...new Set(data.map(item => item.Sport))];
+                const maleCounts = sports.map(sport => {
+                    const count = data.find(item => item.Sport === sport && item.Sex === 'M');
+                    return count ? count.Count : 0;
+                });
+                const femaleCounts = sports.map(sport => {
+                    const count = data.find(item => item.Sport === sport && item.Sex === 'F');
+                    return count ? count.Count : 0;
+                });
+        
+                const barData = [
+                    {
+                        x: sports,
+                        y: maleCounts,
+                        name: 'Male',
+                        type: 'bar'
+                    },
+                    {
+                        x: sports,
+                        y: femaleCounts,
+                        name: 'Female',
+                        type: 'bar'
+                    }
+                ];
+        
+                // Define the layout for the bar chart
+                const layout ={
+
+                    title: 'Medal Distribution by Gender and Sport',
+                    xaxis: { title: 'Sport', categoryorder: 'total descending' },
+                    yaxis: { title: 'Number of Medals' },
+                    barmode: 'group'
+                };
+        
+                // Render the bar chart
+                Plotly.newPlot('medals-gender-sport-bar-chart', barData, layout);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    </script>
+        <script>
+            fetch('/api/medals-gender-sport/')
+                .then(response => response.json())
+                .then(data => {
+                    // Prepare data for the bar chart
+                    const sports = [...new Set(data.map(item => item.Sport))];
+                    const maleCounts = sports.map(sport => {
+                        const count = data.find(item => item.Sport === sport && item.Sex === 'M');
+                        return count ? count.Count : 0;
+                    });
+                    const femaleCounts = sports.map(sport => {
+                        const count = data.find(item => item.Sport === sport && item.Sex === 'F');
+                        return count ? count.Count : 0;
+                    });
+            
+                    const barData = [
+                        {
+                            x: sports,
+                            y: maleCounts,
+                            name: 'Male',
+                            type: 'bar'
+                        },
+                        {
+                            x: sports,
+                            y: femaleCounts,
+                            name: 'Female',
+                            type: 'bar'
+                        }
+                    ];
+            
+                    // Define the layout for the bar chart
+                    const layout ={
+
+                        title: 'Medal Distribution by Gender and Sport',
+                        xaxis: { title: 'Sport', categoryorder: 'total descending',
+                     },
+                        yaxis: { title: 'Number of Medals' },
+                        barmode: 'group',
+                        
+                    };
+            
+                    // Render the bar chart
+                    Plotly.newPlot('medals-gender-sport-bar-chart', barData, layout);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        </script>
+
+            <script>
+                fetch('/api/top-athletes/')
+                    .then(response => response.json())
+                    .then(data => {
+                        
+
+                        const names = [...new Set(data.map(item => item.Name))];
+                        const medalCounts = {
+                            Gold: [],
+                            Silver: [],
+                            Bronze: []
+                        };
+                
+                        // Initialize counts for each athlete
+                        names.forEach(name => {
+                            const athleteData = data.filter(item => item.Name === name);
+                            medalCounts.Gold.push(athleteData.find(item => item.Medal === 'Gold') ? athleteData.find(item => item.Medal === 'Gold').Count : 0);
+                            medalCounts.Silver.push(athleteData.find(item => item.Medal === 'Silver') ? athleteData.find(item => item.Medal === 'Silver').Count : 0);
+                            medalCounts.Bronze.push(athleteData.find(item => item.Medal === 'Bronze') ? athleteData.find(item => item.Medal === 'Bronze').Count : 0);
+                        });
+                
+                        const barData = [
+                            {
+                                y: names,
+                                x: medalCounts.Gold,
+                                name: 'Gold',
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: '#FFD700' }
+                            },
+                            {
+                                y: names,
+                                x: medalCounts.Silver,
+                                name: 'Silver',
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: '#C0C0C0' }
+                            },
+                            {
+                                y: names,
+                                x: medalCounts.Bronze,
+                                name: 'Bronze',
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: '#CD7F32' }
+                            }
+                        ];
+                
+                        // Define the layout for the bar chart
+                        const layout ={
+
+                            title: 'Top 10 Athletes by Number and Type of Medals',
+                            xaxis: { title: 'Number of Medals' },
+                            yaxis: { 
+                              title: 'Athlete', 
+                                categoryorder: 'total ascending',
+                                 automargin: true,  // Automatically adjust the margin
+                                 tickpadding: 10    // Additional padding between labels and the chart
+    },
+                            barmode: 'stack',
+                            margin: {
+                    l: 15, // Increases left margin for better alignment
+                    r: 20,
+                    t: 50,
+                    b: 50
+                }
+                        };
+                
+                        // Render the bar chart
+                        Plotly.newPlot('top-athletes-bar-chart', barData, layout);
+                    })
+                    .catch(error => console.error('Error fetching data:', error));
+            </script>
+            
+                                                                        
+                                                    
+ {% endblock javascript %}

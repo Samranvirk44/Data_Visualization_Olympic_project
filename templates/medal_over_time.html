@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+   
+ 
+
+</style>
+{% endblock header %}
+{% block content %}
+<div class="card-container">
+  
+    
+    
+ 
+    <div class="card"><div id="chart"></div></div>
+    <div class="card"><div id="line-chart" ></div></div>
+  
+    <div class="card"><div id="medals-over-time" ></div></div>
+    <div class="card"><div id="medals-by-country" ></div></div>
+ 
+</div>
+
+
+
+{% endblock content %}
+{% block javascript %}
+
+
+
+<script>
+    // Fetch data from the API
+    fetch('{% url "CumulativeMedalsTopCountriesView" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the traces for Plotly
+            const traces = [];
+            const years = data.years;
+            
+            // Loop through each country and create a trace
+            for (const country in data.countries) {
+                traces.push({
+                    x: years,
+                    y: data.countries[country],
+                    mode: 'lines+markers',
+                    name: country
+                });
+            }
+    
+            // Define the layout
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Cumulative Medal Count Over Time for Top 5 Countries',
+                xaxis: {
+                    title: 'Year',
+                    tickmode: 'linear',
+                    dtick: 4
+                },
+                yaxis: {
+                    title: 'Cumulative Number of Medals',
+                    tickformat: 'd'
+                }
+            };
+    
+            // Render the plot
+            Plotly.newPlot('chart', traces, layout);
+        });
+</script>
+    
+
+<script>
+    // Fetch data from the API
+    fetch('/api/medals-over-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the line chart
+            const trace = {
+                x: data.years,
+                y: data.medals,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Number of Medals'
+            };
+    
+            // Define the layout for the chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Interest in Olympics Over Time (Based on Number of Medals)',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Number of Medals' }
+            };
+    
+            // Render the line chart
+            Plotly.newPlot('line-chart', [trace], layout);
+        });
+</script>
+
+
+
+
+<script>
+    fetch('/api/total-medals-over-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the line plot
+            const trace = {
+                x: data.years,
+                y: data.medals,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Total Medals'
+            };
+    
+            // Define the layout for the plot
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Total Medals Over Time',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Total Medals' },
+            };
+    
+            // Render the line plot
+            Plotly.newPlot('medals-over-time', [trace], layout);
+        });
+</script>
+
+
+
+<script>
+    fetch('/api/medals-by-country-over-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the line plot
+            const traces = {};
+            
+            data.years.forEach((year, index) => {
+                const team = data.teams[index];
+                const totalMedals = data.total_medals[index];
+    
+                // Create a trace for each team
+                if (!traces[team]) {
+                    traces[team] = {
+                        x: [],
+                        y: [],
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: team
+                    };
+                }
+    
+                // Push the year and total medals to the respective team's trace
+                traces[team].x.push(year);
+                traces[team].y.push(totalMedals);
+            });
+    
+            // Convert traces object to an array
+            const plotData = Object.values(traces);
+    
+            // Define the layout for the plot
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Medals by Country Over Time',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Total Medals' },
+                hovermode: 'closest'
+            };
+    
+            // Render the line plot
+            Plotly.newPlot('medals-by-country', plotData, layout);
+        });
+</script>
+
+                                                                        
+                                                    
+ {% endblock javascript %}

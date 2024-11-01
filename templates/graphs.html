@@ -1,0 +1,805 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock header %}
+{% block content %}
+<div id="plotly-chart"></div>
+<div id="gender-medals-chart"></div>
+<div id="chart"></div>
+<div id="treemap" style="width: 100%; height: 900px;" ></div>
+
+
+
+<div id="line-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="medal-bar-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="medal-bar-chart-2024" style="width: 100%; height: 900px;" ></div>
+
+<div id="medals-over-time" style="width: 100%; height: 900px;" ></div>
+
+<div id="sports-pie-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="medals-by-country" style="width: 100%; height: 900px;" ></div>
+
+<div id="gold-medals-pie-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="gold-medals-all-time-pie-chart" style="width: 100%; height: 900px;" ></div>
+<div id="medals-distribution-heatmap" style="width: 100%; height: 900px;" ></div>
+
+<div id="medals-gender-sport-bar-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="top-athletes-bar-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="top-countries-participation-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="participation-overview-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="participation-gold-medals-chart" style="width: 100%; height: 900px;" ></div>
+
+<div id="top_three_participent" style="width: 100%; height: 900px;" ></div>
+
+{% endblock content %}
+{% block javascript %}
+
+<script>
+    // Fetch data from Django API
+    fetch("{% url 'MedalsByCountryYearView' %}")
+        .then(response => response.json())
+        .then(data => {
+            // Transform the data if needed
+            const transformedData = data.map(item => ({
+                locations: item.Team,
+                z: item['Total Medals'],
+                hoverinfo: item.Team
+            }));
+
+            // Create the choropleth plot
+            var trace = {
+                type: 'choropleth',
+                locationmode: 'country names',
+                locations: transformedData.map(d => d.locations),
+                z: transformedData.map(d => d.z),
+                text: transformedData.map(d => d.hoverinfo),
+                colorscale: 'YlOrRd',
+                autocolorscale: false
+            };
+
+            var layout ={
+autosize: true,
+  responsive: true,
+                title: 'Olympic Medals by Country Over Time',
+                geo: {
+                    showframe: false,
+                    showcoastlines: false
+                }
+            };
+
+            Plotly.newPlot('plotly-chart', [trace], layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+<script>
+    // Fetch data from Django API
+    fetch('{% url "MedalsByGenderYearView" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Transform data for Plotly.js
+            const years = [...new Set(data.map(item => item.Year))]; // Unique years
+            const sexes = [...new Set(data.map(item => item.Sex))];  // Unique genders (Sex)
+ 
+            const traces = sexes.map(sex => {
+                return {
+                    x: data.filter(item => item.Sex === sex).map(item => item.Year), // Years for each gender
+                    y: data.filter(item => item.Sex === sex).map(item => item.Medals), // Medals for each gender
+                    mode: 'lines+markers',
+                    name: sex // Gender label
+                };
+            });
+ 
+            // Create the line chart
+            var layout ={
+autosize: true,
+  responsive: true,
+                title: 'Trend of Medals Won by Gender Over Time',
+                xaxis: {
+                    title: 'Year',
+                    tickmode: 'linear',
+                    dtick: 4 // Adjust tick spacing
+                },
+                yaxis: {
+                    title: 'Number of Medals'
+                }
+            };
+ 
+            Plotly.newPlot('gender-medals-chart', traces, layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+<script>
+    // Fetch data from the API
+    fetch('{% url "CumulativeMedalsTopCountriesView" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the traces for Plotly
+            const traces = [];
+            const years = data.years;
+            
+            // Loop through each country and create a trace
+            for (const country in data.countries) {
+                traces.push({
+                    x: years,
+                    y: data.countries[country],
+                    mode: 'lines+markers',
+                    name: country
+                });
+            }
+    
+            // Define the layout
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Cumulative Medal Count Over Time for Top 5 Countries',
+                xaxis: {
+                    title: 'Year',
+                    tickmode: 'linear',
+                    dtick: 4
+                },
+                yaxis: {
+                    title: 'Cumulative Number of Medals',
+                    tickformat: 'd'
+                }
+            };
+    
+            // Render the plot
+            Plotly.newPlot('chart', traces, layout);
+        });
+</script>
+    
+<script>
+
+    fetch('{% url "MedalsBySportYearView" %}')
+    .then(response => response.json())
+    .then(data => {
+        const treemapData = [];
+        const years = [...new Set(data.years)]; // Unique years
+
+        // Create a mapping for years and their corresponding sports
+        const yearSportMap = {};
+
+        // Populate yearSportMap with sports and their medal counts
+        for (let i = 0; i < data.years.length; i++) {
+            const year = data.years[i];
+            const sport = data.sports[i];
+            const totalMedals = data.total_medals[i];
+
+            // If the year is not in the map, initialize it
+            if (!yearSportMap[year]) {
+                yearSportMap[year] = [];
+            }
+
+            // Add the sport and its total medals to the respective year
+            yearSportMap[year].push({ sport, totalMedals });
+        }
+
+        // Build the treemap data structure
+        for (const year of years) {
+            treemapData.push({
+                id: year,
+                label: year,
+                children: yearSportMap[year].map(sportData => ({
+                    id: sportData.sport,
+                    label: sportData.sport,
+                    value: sportData.totalMedals
+                }))
+            });
+        }
+
+        // Flatten the data for Plotly
+        const labels = [];
+        const parents = [];
+        const values = [];
+
+        // Iterate through the treemapData to fill labels, parents, and values
+        treemapData.forEach(yearNode => {
+            labels.push(yearNode.label);
+            parents.push(""); // Top level, so no parent
+
+            yearNode.children.forEach(child => {
+                labels.push(child.label);
+                parents.push(yearNode.label); // Child's parent is the year
+                values.push(child.value);
+            });
+        });
+
+        // Create the treemap trace
+        const trace = {
+            type: "treemap",
+            labels: labels,
+            parents: parents,
+            values: values,
+            textinfo: "label+value",
+            domain: {
+                x: [0, 1],
+                y: [0, 1]
+            },
+            marker: {
+                colors: values,
+                colorscale: 'Viridis'
+            }
+        };
+
+        // Define the layout
+        const layout ={
+autosize: true,
+  responsive: true,
+            title: 'Distribution of Medals by Sport Over Time',
+            height: 600,
+            width: 800,
+        };
+
+        // Render the treemap
+        Plotly.newPlot('treemap', [trace], layout);
+    });
+</script>
+<script>
+    // Fetch data from the API
+    fetch('/api/medals-over-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the line chart
+            const trace = {
+                x: data.years,
+                y: data.medals,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Number of Medals'
+            };
+    
+            // Define the layout for the chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Interest in Olympics Over Time (Based on Number of Medals)',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Number of Medals' }
+            };
+    
+            // Render the line chart
+            Plotly.newPlot('line-chart', [trace], layout);
+        });
+</script>
+
+
+<script>
+    fetch('/api/top-10-countries-medals/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the bar chart
+            const trace = {
+                x: data.countries,
+                y: data.medals,
+                type: 'bar',
+                name: 'Total Medals'
+            };
+    
+            // Define the layout for the chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Top 10 Countries by Total Medals Across All Years',
+                xaxis: { title: 'Country' },
+                yaxis: { title: 'Total Medals' }
+            };
+    
+            // Render the bar chart
+            Plotly.newPlot('medal-bar-chart', [trace], layout);
+        });
+</script>
+
+<script>
+    // Fetch data from the API
+    fetch('/api/top-10-countries-2024-medals/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the bar chart
+            const trace = {
+                x: data.countries,
+                y: data.medals,
+                type: 'bar',
+                name: 'Total Medals'
+            };
+    
+            // Define the layout for the chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Top 10 Countries by Medals in 2024',
+                xaxis: { title: 'Country' },
+                yaxis: { title: 'Total Medals' }
+            };
+    
+            // Render the bar chart
+            Plotly.newPlot('medal-bar-chart-2024', [trace], layout);
+        });
+</script>
+
+<script>
+    fetch('/api/total-medals-over-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the line plot
+            const trace = {
+                x: data.years,
+                y: data.medals,
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: 'Total Medals'
+            };
+    
+            // Define the layout for the plot
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Total Medals Over Time',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Total Medals' },
+            };
+    
+            // Render the line plot
+            Plotly.newPlot('medals-over-time', [trace], layout);
+        });
+</script>
+
+<script>
+    fetch('/api/top-sports-by-medal-count/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the pie chart
+            const trace = {
+                labels: data.sports,
+                values: data.medal_counts,
+                type: 'pie',
+                textinfo: 'label+percent',
+                insidetextorientation: 'radial',
+            };
+    
+            // Define the layout for the chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Top 10 Sports by Medal Count',
+            };
+    
+            // Render the pie chart
+            Plotly.newPlot('sports-pie-chart', [trace], layout);
+        });
+</script>
+
+<script>
+    fetch('/api/medals-by-country-over-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare the data for the line plot
+            const traces = {};
+            
+            data.years.forEach((year, index) => {
+                const team = data.teams[index];
+                const totalMedals = data.total_medals[index];
+    
+                // Create a trace for each team
+                if (!traces[team]) {
+                    traces[team] = {
+                        x: [],
+                        y: [],
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: team
+                    };
+                }
+    
+                // Push the year and total medals to the respective team's trace
+                traces[team].x.push(year);
+                traces[team].y.push(totalMedals);
+            });
+    
+            // Convert traces object to an array
+            const plotData = Object.values(traces);
+    
+            // Define the layout for the plot
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: 'Medals by Country Over Time',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Total Medals' },
+                hovermode: 'closest'
+            };
+    
+            // Render the line plot
+            Plotly.newPlot('medals-by-country', plotData, layout);
+        });
+</script>
+<script>
+    fetch('/api/gold-medals-by-sport/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare data for the pie chart
+            const pieData = [{
+                values: Array(data.gold_medals).fill(1),  // Array of 1s, the count of gold medals
+                labels: data.sports,
+                type: 'pie'
+            }];
+    
+            // Define the layout for the pie chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: `Gold Medals by Sport for ${data.top_country} in 2024`,
+            };
+    
+            // Render the pie chart
+            Plotly.newPlot('gold-medals-pie-chart', pieData, layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+
+<script>
+    fetch('/api/gold-medals-by-sport-all-time/')
+        .then(response => response.json())
+        .then(data => {
+            // Prepare data for the pie chart
+            const pieData = [{
+                values: Array(data.gold_medals).fill(1),  // Array of 1s, the count of gold medals
+                labels: data.sports,
+                type: 'pie'
+            }];
+    
+            // Define the layout for the pie chart
+            const layout ={
+autosize: true,
+  responsive: true,
+                title: `Gold Medals by Sport for ${data.top_country} (1896-2024)`,
+            };
+    
+            // Render the pie chart
+            Plotly.newPlot('gold-medals-all-time-pie-chart', pieData, layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+
+    <script>
+        fetch('/api/medals-distribution-heatmap/')
+            .then(response => response.json())
+            .then(data => {
+                // Prepare data for the heatmap
+                const heatmapData = [{
+                    z: data.z,
+                    x: data.x,
+                    y: data.y,
+                    type: 'heatmap',
+                    colorscale: 'Viridis'
+                }];
+        
+                // Define the layout for the heatmap
+                const layout ={
+autosize: true,
+  responsive: true,
+                    title: 'Distribution of Medals by Top 10 Countries and Year',
+                    xaxis: { title: 'Country', nticks: 36 },
+                    yaxis: { title: 'Year', nticks: 20 },
+                };
+        
+                // Render the heatmap
+                Plotly.newPlot('medals-distribution-heatmap', heatmapData, layout);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    </script>
+
+        <script>
+            fetch('/api/medals-gender-sport/')
+                .then(response => response.json())
+                .then(data => {
+                    // Prepare data for the bar chart
+                    const sports = [...new Set(data.map(item => item.Sport))];
+                    const maleCounts = sports.map(sport => {
+                        const count = data.find(item => item.Sport === sport && item.Sex === 'M');
+                        return count ? count.Count : 0;
+                    });
+                    const femaleCounts = sports.map(sport => {
+                        const count = data.find(item => item.Sport === sport && item.Sex === 'F');
+                        return count ? count.Count : 0;
+                    });
+            
+                    const barData = [
+                        {
+                            x: sports,
+                            y: maleCounts,
+                            name: 'Male',
+                            type: 'bar'
+                        },
+                        {
+                            x: sports,
+                            y: femaleCounts,
+                            name: 'Female',
+                            type: 'bar'
+                        }
+                    ];
+            
+                    // Define the layout for the bar chart
+                    const layout ={
+autosize: true,
+  responsive: true,
+                        title: 'Medal Distribution by Gender and Sport',
+                        xaxis: { title: 'Sport', categoryorder: 'total descending' },
+                        yaxis: { title: 'Number of Medals' },
+                        barmode: 'group'
+                    };
+            
+                    // Render the bar chart
+                    Plotly.newPlot('medals-gender-sport-bar-chart', barData, layout);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        </script>
+
+            <script>
+                fetch('/api/top-athletes/')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Prepare data for the bar chart
+                        const names = [...new Set(data.map(item => item.Name))];
+                        const medalCounts = {
+                            Gold: [],
+                            Silver: [],
+                            Bronze: []
+                        };
+                
+                        // Initialize counts for each athlete
+                        names.forEach(name => {
+                            const athleteData = data.filter(item => item.Name === name);
+                            medalCounts.Gold.push(athleteData.find(item => item.Medal === 'Gold') ? athleteData.find(item => item.Medal === 'Gold').Count : 0);
+                            medalCounts.Silver.push(athleteData.find(item => item.Medal === 'Silver') ? athleteData.find(item => item.Medal === 'Silver').Count : 0);
+                            medalCounts.Bronze.push(athleteData.find(item => item.Medal === 'Bronze') ? athleteData.find(item => item.Medal === 'Bronze').Count : 0);
+                        });
+                
+                        const barData = [
+                            {
+                                y: names,
+                                x: medalCounts.Gold,
+                                name: 'Gold',
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: '#FFD700' }
+                            },
+                            {
+                                y: names,
+                                x: medalCounts.Silver,
+                                name: 'Silver',
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: '#C0C0C0' }
+                            },
+                            {
+                                y: names,
+                                x: medalCounts.Bronze,
+                                name: 'Bronze',
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: '#CD7F32' }
+                            }
+                        ];
+                
+                        // Define the layout for the bar chart
+                        const layout ={
+autosize: true,
+  responsive: true,
+                            title: 'Top 10 Athletes by Number and Type of Medals',
+                            xaxis: { title: 'Number of Medals' },
+                            yaxis: { title: 'Athlete', categoryorder: 'total ascending' },
+                            barmode: 'stack'
+                        };
+                
+                        // Render the bar chart
+                        Plotly.newPlot('top-athletes-bar-chart', barData, layout);
+                    })
+                    .catch(error => console.error('Error fetching data:', error));
+            </script>
+            <script>
+                    fetch('/api/top-countries-participation/')
+                        .then(response => response.json())
+                        .then(data => {
+                            // Prepare data for the bar chart
+                            const countries = data.map(item => item.Country);
+                            const participants = data.map(item => item['Number of Participants']);
+                    
+                            const barData = [{
+                                x: countries,
+                                y: participants,
+                                type: 'bar',
+                                marker: { color: 'skyblue' }
+                            }];
+                    
+                            // Define the layout for the bar chart
+                            const layout ={
+autosize: true,
+  responsive: true,
+                                title: 'Number of Participants from Top 10 Countries',
+                                xaxis: { title: 'Country' },
+                                yaxis: { title: 'Number of Participants' },
+                                showlegend: false
+                            };
+                    
+                            // Render the bar chart
+                            Plotly.newPlot('top-countries-participation-chart', barData, layout);
+                        })
+                        .catch(error => console.error('Error fetching data:', error));
+            </script>
+
+        <script>
+                        // Fetch data from the API
+                        fetch('/api/participation-overview/')
+                            .then(response => response.json())
+                            .then(data => {
+                                // Prepare data for gender participants
+                                const years = Object.keys(data.gender_data.Total);
+                                const maleParticipants = Object.values(data.gender_data.M);
+                                const femaleParticipants = Object.values(data.gender_data.F);
+                                const totalParticipants = Object.values(data.gender_data.Total);
+                        
+                                // Create the main plot
+                                const fig = {
+                                    data: [
+                                        {
+                                            x: years,
+                                            y: maleParticipants,
+                                            mode: 'lines+markers',
+                                            name: 'Male Participants',
+                                            line: { color: 'blue' }
+                                        },
+                                        {
+                                            x: years,
+                                            y: femaleParticipants,
+                                            mode: 'lines+markers',
+                                            name: 'Female Participants',
+                                            line: { color: 'red' }
+                                        },
+                                        {
+                                            x: years,
+                                            y: totalParticipants,
+                                            mode: 'lines+markers',
+                                            name: 'Total Participants',
+                                            line: { color: 'green' }
+                                        }
+                                    ],
+                                    layout: {
+                                        title: 'Olympic Participation Overview',
+                                        xaxis: { title: 'Year', tickmode: 'linear', dtick: 4 },
+                                        yaxis: { title: 'Number of Participants', tickformat: "d" },
+                                        legend: { title: 'Legend' }
+                                    }
+                                };
+                        
+                                // Plot for top countries
+                                const topCountries = data.top_countries;
+                                topCountries.forEach(country => {
+                                    const countryData = data.countries_data[country];
+                                    fig.data.push({
+                                        x: years,
+                                        y: Object.values(countryData),
+                                        mode: 'lines+markers',
+                                        name: `${country} Participants`,
+                                        line: { dash: 'dash' }
+                                    });
+                                });
+                        
+                                // Render the plot
+                                Plotly.newPlot('participation-overview-chart', fig.data, fig.layout);
+                            })
+                            .catch(error => console.error('Error fetching data:', error));
+        </script>
+
+        <script>
+                            // Fetch data from the API
+                            fetch('/api/olympic-participation-overview/')
+                                .then(response => response.json())
+                                .then(data => {
+                                    const years = Object.keys(data.total_participants);
+                                    const totalParticipants = Object.values(data.total_participants);
+                                    const goldMedals = Object.values(data.gold_medals_per_year);
+                            
+                                    // Create the main plot
+                                    const fig = {
+                                        data: [
+                                            {
+                                                x: years,
+                                                y: totalParticipants,
+                                                mode: 'lines+markers',
+                                                name: 'Total Participants',
+                                                line: { color: 'green' }
+                                            },
+                                            {
+                                                x: years,
+                                                y: goldMedals,
+                                                mode: 'lines+markers',
+                                                name: 'Total Gold Medals',
+                                                line: { color: 'gold' }
+                                            }
+                                        ],
+                                        layout: {
+                                            title: 'Olympic Participation and Gold Medals by Top Countries Over Time',
+                                            xaxis: { title: 'Year', tickmode: 'linear', dtick: 4 },
+                                            yaxis: { title: 'Number of Participants / Gold Medals', tickformat: "d" },
+                                            legend: { title: 'Legend' }
+                                        }
+                                    };
+                            
+                                    // Add lines for participants from top 5 participating countries
+                                    data.top_5_participating_countries.forEach((country, index) => {
+                                        const countryData = data.top_5_participants[country];
+                                        fig.data.push({
+                                            x: years,
+                                            y: Object.values(countryData),
+                                            mode: 'lines+markers',
+                                            name: `${country} Participants`,
+                                            line: { dash: 'dash' }
+                                        });
+                                    });
+                            
+                                    // Add lines for gold medals won by top 5 countries
+                                    data.top_5_gold_countries.forEach((country, index) => {
+                                        const goldData = data.top_5_gold_winners[country];
+                                        fig.data.push({
+                                            x: years,
+                                            y: Object.values(goldData),
+                                            mode: 'lines+markers',
+                                            name: `${country} Gold Medals`,
+                                            line: { dash: 'dot' }
+                                        });
+                                    });
+                            
+                                    // Render the plot
+                                    Plotly.newPlot('participation-gold-medals-chart', fig.data, fig.layout);
+                                })
+                                .catch(error => console.error('Error fetching data:', error));
+        </script>
+
+        <script>
+                                async function fetchTop3Participants() {
+                                    const response = await fetch('/api/top-3-participants/');
+                                    const data = await response.json();
+                            
+                                    const years = [...new Set(data.map(item => item.Year))].sort((a, b) => a - b);
+                                    const countries = [...new Set(data.map(item => item.Country))];
+                            
+                                    const traces = countries.map(country => {
+                                        return {
+                                            x: years,
+                                            y: years.map(year => {
+                                                const participant = data.find(item => item.Year === year && item.Country === country);
+                                                return participant ? participant.Participants : 0;
+                                            }),
+                                            mode: 'lines+markers',
+                                            name: country
+                                        };
+                                    });
+                            
+                                    const layout ={
+autosize: true,
+  responsive: true,
+                                        title: 'Number of Participants from Top 3 Countries Each Year',
+                                        xaxis: { title: 'Year' },
+                                        yaxis: { title: 'Number of Participants' },
+                                        legend: { title: 'Country' }
+                                    };
+                            
+                                    Plotly.newPlot('top_three_participent', traces, layout);
+                                }
+                            
+                                // Call the function to fetch data and create the plot
+                                fetchTop3Participants();
+    </script>
+                                                                        
+                                                    
+ {% endblock javascript %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div style="max-width: 1200px; margin: auto; padding: 20px;">
+
+    <!-- Page Header -->
+    <header style="background-color: #4CAF50; padding: 20px; text-align: center; border-radius: 8px;">
+        <h1 style="color: white; font-size: 2.5em; font-family: Arial, sans-serif; margin: 0;">Olympics Analysis Project</h1>
+        <p style="color: #f0f0f0; font-size: 1.2em; margin: 0;">Explore the Dynamics of Olympic Performance with Data Visualization</p>
+    </header>
+
+    <!-- Team Section -->
+    <section style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;">
+        <h2 style="font-size: 2em; color: #4CAF50; margin-bottom: 10px;">Team: Gen Solutions</h2>
+        <p style="font-size: 1.1em; color: #555;">Meet the dedicated team behind this project</p>
+
+        <div class="team-members" style="display: flex; justify-content: center; gap: 20px; margin: 30px 0; overflow-x: auto; padding: 20px;">
+            <div class="member" style="text-align: center; width: 120px;">
+                <img src="{% static 'member1.jpg' %}" alt="Member 1" 
+                     style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid #4CAF50; box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2); margin-bottom: 10px;">
+                <p style="font-size: 1rem; font-weight: bold; color: #333; font-family: Arial, sans-serif;">Hafiz Samran Elahi</p>
+            </div>
+            <!-- Repeat for each team member -->
+            <div class="member" style="text-align: center; width: 120px;">
+                <img src="{% static 'member2.jpg' %}" alt="Member 2" 
+                     style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid #4CAF50; box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2); margin-bottom: 10px;">
+                <p style="font-size: 1rem; font-weight: bold; color: #333; font-family: Arial, sans-serif;">Thesavin Kanagar</p>
+            </div>
+            <div class="member" style="text-align: center; width: 120px;">
+                <img src="{% static 'member3.jpg' %}" alt="Member 2" 
+                     style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid #4CAF50; box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2); margin-bottom: 10px;">
+                <p style="font-size: 1rem; font-weight: bold; color: #333; font-family: Arial, sans-serif;">Owais Safdar</p>
+            </div>
+            <div class="member" style="text-align: center; width: 120px;">
+                <img src="{% static 'member4.jpg' %}" alt="Member 2" 
+                     style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid #4CAF50; box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2); margin-bottom: 10px;">
+                <p style="font-size: 1rem; font-weight: bold; color: #333; font-family: Arial, sans-serif;">Jalpa Rathod</p>
+            </div>
+            <div class="member" style="text-align: center; width: 120px;">
+                <img src="{% static 'member5.jpg' %}" alt="Member 2" 
+                     style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid #4CAF50; box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2); margin-bottom: 10px;">
+                <p style="font-size: 1rem; font-weight: bold; color: #333; font-family: Arial, sans-serif;">Muhammad Hammad Arshad</p>
+            </div>
+            <!-- Add additional members as needed -->
+        </div>
+    </section>
+
+    <!-- Main Content Section -->
+    <section style="text-align: center; padding: 40px 20px; background-color: #ffffff; border-radius: 8px; margin-top: 20px;">
+        <h2 style="font-size: 2.2em; color: #333; font-family: Arial, sans-serif;">Olympics Analysis</h2>
+        
+        <div style="max-width: 800px; margin: auto;">
+            <h3 style="font-size: 1.5em; color: #4CAF50; font-family: Arial, sans-serif; margin-bottom: 10px;">Overview</h3>
+            <p style="font-size: 1.1em; line-height: 1.6; color: #555;">
+                Our application offers a deep dive into Olympic data, enabling users to explore the distribution of medals, athlete participation, and country performance across different sports and gender categories. This platform is designed for interactive exploration and data storytelling.
+            </p>
+            <h3 style="font-size: 1.5em; color: #4CAF50; font-family: Arial, sans-serif; margin-bottom: 10px;">Goal</h3>
+            <p style="font-size: 1.1em; line-height: 1.6; color: #555;">
+                The goal of this analysis is to provide users with meaningful insights into Olympic performance trends, medal distribution, and country participation, presenting data-driven insights for understanding the Olympics.
+            </p>
+            <h3 style="font-size: 1.5em; color: #4CAF50; font-family: Arial, sans-serif; margin-bottom: 10px;">Dataset</h3>
+            <p style="font-size: 1.1em; line-height: 1.6; color: #555;">
+                The dataset contains 252,565 entries with features such as ID, Player Name, Sex, Team, NOC, Year, Season, City, Sport, and Event. This enables comprehensive analysis of medal distribution trends and country dominance over time.
+            </p>
+        </div>
+    </section>
+
+    <!-- Data Visualization Section -->
+    <section style="padding: 40px; background-color: #f9f9f9; border-radius: 8px; margin-top: 20px;">
+        <h2 style="text-align: center; color: #333; font-family: Arial, sans-serif; font-size: 2em; margin-bottom: 20px;">Interactive Analysis</h2>
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <div style="width: 100%; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+                <div id="plotly-chart"></div>
+            </div>
+        </div>
+
+
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <div style="width: 100%; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+                <div id="gender-medals-chart"></div>
+            </div>
+        </div>
+
+       
+        
+    </section>
+
+</div> <!-- End of centered content container -->
+
+{% endblock content %}
+
+{% block javascript %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<!-- Medals by Country Over Time Chart -->
+<script>
+    var layout = {
+    autosize: true, // This enables the chart to dynamically adjust to the container width
+    title: 'Olympic Medals by Country Over Time',
+    margin: { l: 20, r: 20, t: 60, b: 40 }, // Adjust margins as needed to maximize graph area
+    geo: { showframe: false, showcoastlines: false },
+    // Additional layout properties
+};
+
+    fetch("{% url 'MedalsByCountryYearView' %}")
+        .then(response => response.json())
+        .then(data => {
+            const years = [...new Set(data.map(item => item.Year))];
+            const frames = years.map(year => ({
+                name: year.toString(),
+                data: [{
+                    type: 'choropleth',
+                    locationmode: 'country names',
+                    locations: data.filter(d => d.Year === year).map(d => d.Team),
+                    z: data.filter(d => d.Year === year).map(d => d['Total Medals']),
+                    text: data.filter(d => d.Team).map(d => d.Team)
+                }]
+            }));
+
+            var layout = {
+                title: 'Olympic Medals by Country Over Time',
+                geo: { showframe: false, showcoastlines: false },
+                sliders: [{
+                    active: 0,
+                    currentvalue: { prefix: "Year: ", font: { size: 20 }},
+                    steps: years.map(year => ({
+                        label: year.toString(),
+                        method: 'animate',
+                        args: [[year.toString()], { mode: 'immediate', frame: { duration: 500, redraw: true }, transition: { duration: 0 }}]
+                    }))
+                }],
+                updatemenus: [{
+                    type: 'buttons',
+                    x: 0.05, y: 0,
+                    buttons: [
+                        { label: 'Play', method: 'animate', args: [null, { mode: 'immediate', frame: { duration: 500, redraw: true }, loop: false }]},
+                        { label: 'Pause', method: 'animate', args: [[null], { mode: 'immediate', frame: { duration: 0, redraw: false }}]}
+                    ]
+                }]
+            };
+
+            Plotly.newPlot('plotly-chart', [frames[0].data[0]], layout).then(() => {
+                Plotly.addFrames('plotly-chart', frames);
+            });
+        })
+        .catch(error => console.error('Error fetching data:', error));
+        
+</script>
+
+
+<!-- Medals by Gender Over Time Chart -->
+<script>
+    fetch('{% url "MedalsByGenderYearView" %}')
+        .then(response => response.json())
+        .then(data => {
+            const years = [...new Set(data.map(item => item.Year))];
+            const sexes = [...new Set(data.map(item => item.Sex))];
+            const traces = sexes.map(sex => ({
+                x: data.filter(item => item.Sex === sex).map(item => item.Year),
+                y: data.filter(item => item.Sex === sex).map(item => item.Medals),
+                mode: 'lines+markers', name: sex
+            }));
+
+            var layout = {
+                title: 'Trend of Medals Won by Gender Over Time',
+                xaxis: { title: 'Year', type: 'date', tickformat: '%Y', rangeslider: { visible: true }},
+                yaxis: { title: 'Number of Medals' },
+                legend: { title: { text: 'Gender' }}
+            };
+
+            Plotly.newPlot('gender-medals-chart', traces, layout);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+</script>
+
+
+
+{% endblock javascript %}

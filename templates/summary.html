@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<style>
+    .kpi-row {
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+    }
+
+    .kpi-card {
+        flex: 1;
+        background: white;
+        border-radius: 0.75rem;
+        padding: 0.8rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+        min-width: 120px;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .kpi-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .kpi-icon {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background-color: #e0f2fe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .kpi-icon svg {
+        width: 15px;
+        height: 15px;
+        color: #0284c7;
+    }
+
+    .kpi-title {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 200;
+        margin-bottom: 0.5rem;
+    }
+
+    .kpi-value {
+        font-size: 1.75rem;
+        font-weight: bold;
+        color: #1f2937;
+        display: flex;
+        align-items: baseline;
+    }
+
+    .kpi-trend {
+        font-size: 0.75rem;
+        margin-left: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+    }
+
+    .trend-up {
+        background-color: #dcfce7;
+        color: #16a34a;
+    }
+
+    .trend-down {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
+    @media (max-width: 1200px) {
+        .kpi-row {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .kpi-card {
+            flex: 1 1 calc(50% - 0.5rem);
+            min-width: calc(50% - 0.5rem);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .kpi-card {
+            flex: 1 1 100%;
+            min-width: 100%;
+        }
+
+        body {
+            padding: 1rem;
+        }
+    }
+    .chart-container {
+        width: 45%;
+        margin: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .row {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    .last-row {
+        display: flex;
+        justify-content: center;
+    }
+    
+
+</style>
+{% endblock header %}
+{% block content %}
+<div class="dashboard-container">
+    <div class="kpi-row" id="kpi-row">
+        
+        
+    </div>
+    <div class="row">
+        <div class="chart-container">
+            <canvas id="genderChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="topSportsChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="chart-container">
+            <canvas id="medalsByYearChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="seasonChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="last-row">
+        <div class="chart-container">
+            <canvas id="medalsChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+{% block javascript %}
+<script>
+    
+    $("document").ready(function(){
+        $.ajax({
+            url: '/api/kpis/',
+            method: 'GET',
+            success: function(data) {
+                $("#kpi-row").append(
+                    `
+                    <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="kpi-title">Total Athletes</div>
+                            <div class="kpi-value">
+                                ${data.total_athletes}
+                                
+                            </div>
+                        </div>
+
+                        <!-- Medals KPI Card -->
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="kpi-title">Total Medals</div>
+                            <div class="kpi-value">
+                                ${data.total_medals}
+                                
+                            </div>
+                        </div>
+
+                        <!-- Countries KPI Card -->
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="kpi-title">Participating Countries</div>
+                            <div class="kpi-value">
+                                ${data.total_teams}
+                                
+                            </div>
+                        </div>
+
+                        <!-- Sports KPI Card -->
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="kpi-title">Total Sports</div>
+                            <div class="kpi-value">
+                                ${data.total_events}
+                                
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon-gender-percentage">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5C10.6193 4.5 9.5 5.61929 9.5 7C9.5 8.38071 10.6193 9.5 12 9.5C13.3807 9.5 14.5 8.38071 14.5 7C14.5 5.61929 13.3807 4.5 12 4.5Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H4.5C2.567 16 1 17.567 1 19.5V21H4.5C6.433 21 8 19.433 8 17.5V16Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 21H19.5C17.567 21 16 19.433 16 17.5V16H20.5C22.433 16 24 17.567 24 19.5V21Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18.5C10.6193 18.5 9.5 19.6193 9.5 21C9.5 22.3807 10.6193 23.5 12 23.5C13.3807 23.5 14.5 22.3807 14.5 21C14.5 19.6193 13.3807 18.5 12 18.5Z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="kpi-title">Male Percentage</div>
+                            <div class="kpi-value">
+                                ${data.male_percentage}
+                                
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon-top-sports">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5V3M16.5 5.25h1.75a1.5 1.5 0 011.5 1.5v1.5m-17.5 0H2.25a1.5 1.5 0 00-1.5 1.5v1.5m18.75 0h1.5a1.5 1.5 0 011.5 1.5v1.5m-17.5 0v1.5a1.5 1.5 0 001.5 1.5h17.5a1.5 1.5 0 001.5-1.5v-1.5m-3-7.5h-3m0 0v-1.5a4.5 4.5 0 00-9 0v1.5m3 0h3m0 0v1.5m0 3v1.5m-3 0v1.5m6-1.5v-1.5m-6 0h6m0 0v1.5m-3 0H6m6 3v3a1.5 1.5 0 003 0v-3m-3 0a1.5 1.5 0 00-3 0v3m-3 0H6m6 3a1.5 1.5 0 00-3 0v3a1.5 1.5 0 003 0v-3m0 0H9m3-3h3" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="kpi-title">Top Sport</div>
+                            <div class="kpi-value">
+                                ${data.top_sports}
+                                
+                            </div>
+                        </div>
+                    `
+                )
+            },
+            error: function(error) {
+                console.error('Error fetching KPI data:', error);
+            }
+        });
+        
+            fetch('/api/medal-count-by-sex/')
+                .then(response => response.json())
+                .then(data => {
+                    new Chart(document.getElementById('genderChart'), {
+                        type: 'pie',
+                        data: {
+                            labels: ['Male', 'Female'],
+                            datasets: [{
+                                data: [data.Male, data.Female],
+                                backgroundColor: ['#36A2EB', '#FF6384']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Medal Distribution by Gender'
+                                }
+                            }
+                        }
+                    });
+                });
+    
+            // Top Sports Chart
+            fetch('/api/top-sports/')
+                .then(response => response.json())
+                .then(data => {
+                    new Chart(document.getElementById('topSportsChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: data.map(item => item.Sport),
+                            datasets: [{
+                                label: 'Number of Medals',
+                                data: data.map(item => item.count),
+                                backgroundColor: '#4BC0C0'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Top 5 Sports by Medals'
+                                }
+                            }
+                        }
+                    });
+                });
+    
+            // Medals by Year Chart
+            fetch('/api/medals-by-year/')
+                .then(response => response.json())
+                .then(data => {
+                    new Chart(document.getElementById('medalsByYearChart'), {
+                        type: 'line',
+                        data: {
+                            labels: data.map(item => item.Year),
+                            datasets: [{
+                                label: 'Number of Medals',
+                                data: data.map(item => item.count),
+                                borderColor: '#FF9F40',
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Medals Distribution Over Years'
+                                }
+                            }
+                        }
+                    });
+                });
+    
+            // Season Distribution Chart
+            fetch('/api/medal-distribution-by-season/')
+                .then(response => response.json())
+                .then(data => {
+                    new Chart(document.getElementById('seasonChart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.map(item => item.Season),
+                            datasets: [{
+                                data: data.map(item => item.count),
+                                backgroundColor: ['#36A2EB', '#FF6384']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Medals by Season'
+                                }
+                            }
+                        }
+                    });
+                });
+    
+            // Medals by Country Chart
+            fetch('/api/MedalsByCountryView/')
+            .then(response => response.json())
+            .then(data => {
+                // Convert DataFrame to array format if it's not already
+                const labels = data.map(item => item.NOC);
+                const counts = data.map(item => item.count);
+
+                const ctx = document.getElementById('medalsChart').getContext('2d');
+                const medalsChart = new Chart(ctx, {
+                    type: 'bar', // Bar chart type
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Number of Medals',
+                            data: counts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Medal Count'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Country (NOC)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return tooltipItem.dataset.label + ': ' + tooltipItem.raw;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            
+        
+    })
+
+
+</script>
+
+{% endblock javascript %}

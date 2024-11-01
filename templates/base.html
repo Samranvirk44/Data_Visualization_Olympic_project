@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphs</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block header %}
+      
+    {% endblock header %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{% url 'index' %}" class="logo">Olympics Data Analysis</a>
+            
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="{% url 'index' %}" class="sidebar-link">Home</a>
+        <a href="{% url 'medal_over_time' %}" class="sidebar-link">Medal Over Time</a>
+        <a href="{% url 'medal_distribution_breakdown' %}" class="sidebar-link">Medal Distribution Breakdown</a>
+        <a href="{% url 'participation_and_athlete' %}" class="sidebar-link">Participation and Athletes</a>
+        <a href="{% url 'country_sports_comparison' %}" class="sidebar-link">Country and Sport Comparisons</a>
+        <a href="{% url 'summary' %}" class="sidebar-link">Summary</a>
+        <a href="{% url 'help' %}" class="sidebar-link">Help</a>
+    </div>
+
+    <!-- Main content -->
+    <div class="main-content">
+        {% block content %}{% endblock content%}
+    </div>
+
+    <script>
+        const config = {
+            responsive: true
+          };
+    </script>
+    {% block javascript %}
+    
+    {% endblock javascript %}
+    
+</body>
+</html>
